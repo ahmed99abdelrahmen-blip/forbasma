@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Gift for Juju</title>
+    <style>
+        :root { --bg: #fffaf0; --text: #4a4a4a; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        .page { width: 90%; max-width: 600px; text-align: center; transition: opacity 0.8s; position: absolute; display: none; }
+        #page1 { display: block; opacity: 1; }
+        .box { background: white; padding: 40px; border-radius: 25px; box-shadow: 0 15px 35px rgba(212, 163, 115, 0.1); border: 1px solid #f0e4d7; position: relative; }
+        .floral-frame { border: 2px solid #f9ebe0; padding: 30px; border-radius: 20px; position: relative; background: #fff; }
+        .flower-decoration { position: absolute; font-size: 22px; pointer-events: none; }
+        .f1 { top: -15px; left: 20%; } .f2 { top: -15px; right: 20%; }
+        .f3 { bottom: -15px; left: 25%; } .f4 { bottom: -15px; right: 25%; }
+        .f5 { left: -15px; top: 30%; } .f6 { right: -15px; top: 70%; }
+        #gameContainer { display: none; flex-direction: column; align-items: center; width: 100%; }
+        canvas { background: #fff; border-bottom: 2px solid #535353; cursor: pointer; touch-action: none; border-radius: 5px; }
+        .score { font-family: 'Courier New', monospace; font-size: 24px; margin-bottom: 10px; font-weight: bold; color: #8b5e3c; }
+        #page3 { text-align: right; }
+        .flower-link-container { display: flex; flex-direction: column; align-items: flex-end; margin-top: 25px; }
+        .flower-btn { background: none; border: none; font-size: 45px; cursor: pointer; text-decoration: none; display: flex; align-items: center; color: inherit; }
+        .press-text { font-size: 16px; margin-left: 10px; color: #d4a373; font-weight: bold; font-family: 'Georgia', serif; }
+        .tiny-text { font-size: 13px; color: #c0c0c0; margin-top: 5px; font-style: italic; }
+        .btn-start { background: none; border: none; font-size: 70px; cursor: pointer; transition: transform 0.3s ease; }
+        .btn-start:hover { transform: scale(1.1) rotate(10deg); }
+    </style>
+</head>
+<body>
+
+    <audio id="gameMusic" src="game_music.mp3.mp3" preload="auto" loop></audio>
+    <audio id="mitskiMusic" src="mitski.mp3.mp3" preload="auto" loop></audio>
+
+    <div id="page1" class="page">
+        <div class="box">
+            <h1 style="color: #d4a373; margin-bottom: 15px;">a lil gift for you</h1>
+            <p>hi ya juju, </p>
+            <p>3amla eh ik that life been treating you bad lately and i am sorry i couldnt be there for you 7a2k 3laya and i wish i can be by ur side rn and have ur back ana 3aref enha btewga3 sa3at bas sada2eny kol 7aga hateb2a kwaysa <3.</p>
+            <p>b7bk awy and have fun with this little gift i made for you.</p>
+            <button class="btn-start" id="startBtn">🌸</button>
+        </div>
+    </div>
+
+    <div id="page2" class="page">
+        <div id="gameContainer">
+            <div class="score" id="scoreDiv">00000</div>
+            <canvas id="gameCanvas"></canvas>
+            <p style="font-size: 12px; color: #bbb; margin-top: 15px; letter-spacing: 1px;">TAP OR SPACE TO JUMP (GOAL: 250)</p>
+        </div>
+    </div>
+
+    <div id="page3" class="page">
+        <div class="box floral-frame">
+            <span class="flower-decoration f1">🌻</span>
+            <span class="flower-decoration f2">🌷</span>
+            <span class="flower-decoration f3">🌼</span>
+            <span class="flower-decoration f4">🌹</span>
+            <span class="flower-decoration f5">🌿</span>
+            <span class="flower-decoration f6">🍃</span>
+            
+            <p>i wanted to write this letter for you to tell you how much i care abt you and your feelings 3aref eno enty za3lana w met2asara bas 7a2k 3laya wallahi i didnt want to see u in this state 7a2k 3laya bgd and i promise kol 7aga hateb2a kwaysa since am w u and isa i will never leave u alone feeling sad and ik this isnt too much but i hope u liked it and i really made alot of effort into it but u deserve it <3.</p>
+            
+            <div class="flower-link-container">
+                <a href="https://youtu.be/SixsaGWC2Io?si=N5gkO1IDLLSJU-xL" target="_blank" class="flower-btn">
+                    🌸 <span style="font-size: 22px; margin: 0 10px;">➔</span> <span class="press-text">press</span>
+                </a>
+                <div class="tiny-text">love you<3</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameMusic = document.getElementById('gameMusic');
+        const mitskiMusic = document.getElementById('mitskiMusic');
+
+        canvas.width = 600; canvas.height = 150;
+        let score = 0, gameActive = false, obstacles = [], canSpawn = true, heartObj = null;
+        let dino = { x: 50, y: 110, w: 30, h: 30, dy: 0, jump: -11.5, gravity: 0.75, grounded: false };
+
+        document.getElementById('startBtn').onclick = () => {
+            transition('page1', 'page2');
+            gameMusic.volume = 0.6;
+            gameMusic.play().catch(err => console.log("Game audio error:", err));
+            gameActive = true;
+            loop();
+        };
+
+        window.onkeydown = (e) => { if(e.code === 'Space') jump(); };
+        canvas.ontouchstart = (e) => { e.preventDefault(); jump(); };
+        canvas.onmousedown = jump;
+
+        function jump() { 
+            if (dino.grounded && gameActive) { 
+                dino.dy = dino.jump; 
+                dino.grounded = false; 
+            } 
+        }function loop() {
+            if (!gameActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw Ground
+            ctx.strokeStyle = '#d4a373'; 
+            ctx.lineWidth = 2; 
+            ctx.beginPath(); 
+            ctx.moveTo(0, 140); 
+            ctx.lineTo(600, 140); 
+            ctx.stroke();
+
+            // Physics
+            dino.dy += dino.gravity; 
+            dino.y += dino.dy;
+            if (dino.y > 110) { dino.y = 110; dino.dy = 0; dino.grounded = true; }
+
+            // ✅ SAFARI FIX: Use Apple System Font & Adjusted Height
+            ctx.font = "30px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto";
+            ctx.fillText("🦖", dino.x, dino.y + 20); 
+
+            // Score
+            score++;
+            let s = Math.floor(score/8);
+            document.getElementById('scoreDiv').innerText = s.toString().padStart(5, '0');
+
+            // Heart
+            if (s < 250) {
+                if (canSpawn && Math.random() < 0.045) {
+                    obstacles.push({ x: 600, y: 115 });
+                    canSpawn = false;
+                    setTimeout(() => { canSpawn = true; }, 750); 
+                }
+            } else if (!heartObj) {
+                heartObj = { x: 600, y: 80 };
+            }
+
+            if (heartObj) {
+                heartObj.x -= 5;
+                ctx.fillText("❤️", heartObj.x, heartObj.y + 20);
+                if (dino.x + 30 > heartObj.x && dino.x < heartObj.x + 30 && dino.y < heartObj.y + 40 && dino.y + 40 > heartObj.y) {
+                    win();
+                }
+            }
+
+            // Obstacles
+            obstacles.forEach((o, i) => {
+                o.x -= 6.5;
+                ctx.fillText("🌵", o.x, o.y + 20);
+                if (dino.x + 22 > o.x && dino.x < o.x + 18 && dino.y + 28 > o.y) {
+                    score = 0; obstacles = [];
+                }
+                if (o.x < -30) obstacles.splice(i, 1);
+            });
+            requestAnimationFrame(loop);
+        }
+
+        function win() {
+            gameActive = false;
+            gameMusic.pause();
+            transition('page2', 'page3');
+            mitskiMusic.volume = 0.7;
+            mitskiMusic.play().catch(err => console.log("Mitski audio error:", err));
+        }
+
+        function transition(from, to) {
+            const f = document.getElementById(from), t = document.getElementById(to);
+            f.style.opacity = '0';
+            setTimeout(() => {
+                f.style.display = 'none';
+                t.style.display = 'block';
+                if(to === 'page2') { document.getElementById('gameContainer').style.display = 'flex'; }
+                setTimeout(() => { t.style.opacity = '1'; }, 50);
+            }, 600);
+        }
+    </script>
+</body>
+</html>
